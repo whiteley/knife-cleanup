@@ -19,7 +19,8 @@ Gem::Specification.new do |s|
   s.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
   s.require_paths = ["lib"]
 
-  s.add_dependency "chef", ">= 0.10.10"
-  
-  s.add_development_dependency "rspec", "~> 2.10"
+  s.add_dependency "chef", "~> 12.4.3"
+  s.add_dependency "semverse", "~> 1.2.1"
+
+  s.add_development_dependency "rspec", "~> 3.2"
 end

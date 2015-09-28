@@ -23,6 +23,7 @@ module ServerCleanup
       require 'chef/api_client'
       require 'chef/cookbook_loader'
       require 'chef/knife/cookbook_download'
+      require 'semverse'
     end
 
     banner "knife cleanup versions (options)"
@@ -47,24 +48,27 @@ module ServerCleanup
     def cookbooks
       ui.msg "Searching for unused cookboks versions..."
       all_cookbooks = rest.get_rest("/cookbooks?num_versions=all")
-      latest_cookbooks = rest.get_rest("/cookbooks?latest")
-      
+
       # All cookbooks
       cbv = all_cookbooks.inject({}) do |collected, ( cookbook, versions )|
         collected[cookbook] = versions["versions"].map {|v| v['version']}
         collected
       end
-      
-      # Get the latest cookbooks
-      latest = latest_cookbooks.inject({}) do |collected, ( cookbook, versions )|
-        collected[cookbook] = versions["versions"].map {|v| v['version']}
-        collected
+
+      limit = 5
+      cbv.each_key do |cb|
+        latest = cbv[cb].map { |v| Semverse::Version.new(v) }
+        if latest.length > limit
+          latest.sort.map(&:to_s)[(1 - limit)..-1].each do |v|
+            cbv[cb].delete(v)
+          end
+        else
+          cbv[cb].reverse.each do |v|
+            cbv[cb].delete(v)
+          end
+        end
       end
-      
-      latest.each_key do |cb|
-        cbv[cb].delete(latest[cb][0])
-      end
-      
+
       # Let see what cookbooks we have in use in all environments
       Chef::Environment.list.each_key do |env_list|
         env = Chef::Environment.load(env_list)
